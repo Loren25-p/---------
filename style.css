@@ -26,19 +26,17 @@ body {
     background-position: 250% 0, 250% 0;
   }
 }
-/* ??????????? */
+.similarMovies {
+  display: none;
+}
 .rounded {
   border-radius: 10px;
   margin-bottom: 10px;
   background-color: rgba(250, 250, 250, 0.5);
   padding: 5px;
+  display: none;
 }
-/* .search_rounded {
-  border-radius: 10px;
-  margin-bottom: 10px;
-  background-color: rgba(250, 250, 250, 0.5);
-} */
-/* ???????????? */
+
 .darckBg {
   border-radius: 10px;
   border-color: rgba(200, 200, 200, 0.8);
@@ -46,8 +44,6 @@ body {
   padding: 5px;
 }
 .themeChange img {
-  /* transform: rotate(180deg); */
-  /* transition: 0.8s ease; */
   width: 50px;
   height: 50px;
 }
