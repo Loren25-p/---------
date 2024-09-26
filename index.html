@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Кинопоиск</title>
     <link rel="stylesheet" href="./style.css" />
+    <link rel="icon" type="image/png" href="img/fav_icon.jpg" />
   </head>
   <body class="dark">
     <header class="rounded">
       <h1>Кинопоиск</h1>
       <nav class="darckBg">
-        <button class="active">Главная</button>
-        <button>Избранное</button>
+        <a class="active" href="#">Главная</a>
+        <a href="./favorites.html">Избранное</a>
       </nav>
       <div class="themeChange">
         <img src="./img/themeChange.svg" alt="themeChange" />
@@ -74,26 +75,7 @@
       <div class="similarMovieTitle darckBg">
         <h2>Похожих фильмов 6</h2>
       </div>
-      <div class="similarMovies rounded">
-        <div class="similarMovieCard">
-          <div class="save saved">
-            <img src="./img//favBtn.svg" alt="fav icon" />
-          </div>
-          <div class="similarMovieText">Iron sky</div>
-        </div>
-        <div class="similarMovieCard">
-          <div class="save"><img src="./img//favBtn.svg" alt="fav icon" /></div>
-          <div class="similarMovieText">Iron sky</div>
-        </div>
-        <!-- <div class="similarMovieCard">
-            <div class="save"><img src="./img//favBtn.svg" alt="fav icon" /></div>
-            <div class="similarMovieText">Iron sky</div>
-          </div>
-          <div class="similarMovieCard">
-            <div class="save"><img src="./img//favBtn.svg" alt="fav icon" /></div>
-            <div class="similarMovieText">Iron sky</div>
-          </div> -->
-      </div>
+      <div class="similarMovies rounded"></div>
     </div>
 
     <script src="script.js"></script>

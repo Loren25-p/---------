@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ИЗБРАННОЕ</title>
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="icon" type="image/png" href="img/favBtn.svg" />
+  </head>
+  <body>
+    <header class="rounded">
+      <h1>Кинопоиск</h1>
+      <nav class="darckBg">
+        <a href="./index.html">Главная</a>
+        <a class="active" href="./favorites.html">Избранное</a>
+      </nav>
+      <div class="themeChange">
+        <img src="./img/themeChange.svg" alt="themeChange" />
+      </div>
+    </header>
+    <div class="similarMovieTitle darckBg">
+      <h2>Фильмы в избранном: 0</h2>
+    </div>
+    <div class="similarMovies rounded"></div>
+
+    <script src="script.js"></script>
+    <script>
+      function displayFavoriteMovies() {
+        const favs = JSON.parse(localStorage.getItem("favStar")) || [];
+        const similarMoviesContainer = document.querySelector(".similarMovies");
+        const similarMovieTitle = document.querySelector(
+          ".similarMovieTitle h2"
+        );
+
+        // Обновляем заголовок с количеством избранных фильмов
+        similarMovieTitle.innerText = `Фильмы в избранном: ${favs.length}`;
+
+        if (favs.length === 0) {
+          similarMoviesContainer.innerHTML = "<p></p>";
+          return;
+        }
+
+        const favoriteMoviesHTML = favs
+          .map(
+            (movie) => `
+                <div class="similarMovieCard" style="background-image:url(${movie.poster})">
+                    <div class="favStar active" data-title="${movie.title}" data-poster="${movie.poster}" data-imdbId="${movie.imdbID}" style="cursor: pointer;"></div>
+                    <div class="similarMovieText">${movie.title}</div>
+                </div>
+            `
+          )
+          .join("");
+
+        similarMoviesContainer.innerHTML = favoriteMoviesHTML;
+
+        // Добавляем обработчики событий для звёзд
+        document.querySelectorAll(".favStar").forEach((star) => {
+          star.addEventListener("click", toggleFavorite);
+        });
+      }
+
+      function toggleFavorite(event) {
+        const title = event.currentTarget.getAttribute("data-title");
+        const imdbID = event.currentTarget.getAttribute("data-imdbId");
+        const favs = JSON.parse(localStorage.getItem("favStar")) || [];
+
+        const index = favs.findIndex((movie) => movie.imdbID === imdbID);
+        if (index >= 0) {
+          // Удаляем фильм из избранного
+          favs.splice(index, 1);
+          localStorage.setItem("favStar", JSON.stringify(favs));
+          displayFavoriteMovies(); // Обновляем отображение
+        }
+      }
+
+      // Вызов функции при загрузке страницы
+      document.addEventListener("DOMContentLoaded", displayFavoriteMovies);
+    </script>
+  </body>
+</html>

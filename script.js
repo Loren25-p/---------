@@ -9,7 +9,35 @@ function changeTheme() {
 }
 
 let searchBtn = document.querySelector(".search button");
-searchBtn.addEventListener("click", searchMovie);
+if (searchBtn) {
+  searchBtn.addEventListener("click", searchMovie);
+}
+
+document.getElementById("dd").addEventListener("keypress", function (event) {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    searchBtn.click(); // Симулирует нажатие кнопки поиска
+  }
+});
+
+let favs = JSON.parse(localStorage.getItem("favStar")) || []; // Загружаем избранные фильмы из localStorage
+
+function addToFav(event) {
+  let favBtn = event.target;
+
+  let title = favBtn.getAttribute("data-title");
+  let poster = favBtn.getAttribute("data-poster");
+  let imdbID = favBtn.getAttribute("data-imdbId");
+
+  let fav = { title, poster, imdbID };
+
+  // Проверяем, если фильм уже в избранном
+  if (!favs.some((f) => f.imdbID === imdbID)) {
+    favs.push(fav);
+    localStorage.setItem("favStar", JSON.stringify(favs));
+    favBtn.classList.add("active");
+  }
+}
 
 let loader = document.querySelector(".loader");
 
@@ -19,16 +47,17 @@ async function searchMovie() {
   let searchText = document.getElementById("dd").value;
   console.log(searchText);
 
-  let response = await sendRequest("https://www.omdbapi.com/", "GET", {
-    apikey: "74920bef",
-    t: searchText,
-  });
+  try {
+    let response = await sendRequest("https://www.omdbapi.com/", "GET", {
+      apikey: "74920bef",
+      t: searchText,
+    });
 
-  if (response.Response == "False") {
-    loader.style.display = "none";
-    alert(response.Error);
-    console.log(response);
-  } else {
+    if (response.Response === "False") {
+      alert(response.Error);
+      return;
+    }
+
     let main = document.querySelector(".main");
     main.style.display = "block";
 
@@ -50,23 +79,25 @@ async function searchMovie() {
     let movieInfo = document.querySelector(".movieInfo");
     movieInfo.innerHTML = "";
 
-    for (let i = 0; i < detailsList.length; i++) {
-      let param = detailsList[i];
+    for (let param of detailsList) {
       let desc = `<div class="desc darckBg">
-                <div class="title">${param}</div>
-                <div class="value">${response[param]}</div>
-            </div>`;
+                    <div class="title">${param}</div>
+                    <div class="value">${response[param]}</div>
+                  </div>`;
       movieInfo.innerHTML += desc;
     }
 
-    loader.style.display = "none";
     fetchSimilarMovies(searchText);
+  } catch (error) {
+    alert("Ошибка при получении данных о фильме.");
+    console.error(error);
+  } finally {
+    loader.style.display = "none";
   }
 }
 
 async function fetchSimilarMovies(title) {
   try {
-    // Fetch similar movies from the API
     let similarMoviesResponse = await sendRequest(
       "https://www.omdbapi.com/",
       "GET",
@@ -76,25 +107,18 @@ async function fetchSimilarMovies(title) {
       }
     );
 
-    // Select the title element
     let similarMovieTitle = document.querySelector(".similarMovieTitle h2");
 
-    // Check if the response indicates an error
     if (similarMoviesResponse.Response === "False") {
-      document.querySelector(".similarMovieTitle h2").style.display = "none";
-      document.querySelector(".similarMovies").style.display = "none";
-
-      similarMovieTitle.innerHTML = "No similar movies found.";
+      similarMovieTitle.innerHTML = "Похожие фильмы не найдены.";
       similarMovieTitle.style.display = "block";
-      document.querySelector(".similarMovies").innerHTML = ""; // Clear previous results
+      document.querySelector(".similarMovies").style.display = "none";
       return;
     }
 
-    // Display the total number of results
     similarMovieTitle.innerHTML = `Похожие фильмы: ${similarMoviesResponse.totalResults}`;
     similarMovieTitle.style.display = "block";
 
-    // Check if there are movies to display
     if (
       similarMoviesResponse.Search &&
       similarMoviesResponse.Search.length > 0
@@ -102,182 +126,65 @@ async function fetchSimilarMovies(title) {
       displaySimilarMovies(similarMoviesResponse.Search);
     } else {
       document.querySelector(".similarMovies").innerHTML =
-        "No similar movies found.";
+        "Похожие фильмы не найдены.";
     }
   } catch (error) {
-    console.error("Error fetching movies:", error);
-    document.querySelector(".similarMovieTitle h2").innerHTML =
-      "Error fetching movies.";
+    console.error("Ошибка при получении похожих фильмов:", error);
   }
 }
 
 function displaySimilarMovies(movies) {
   let similarMovieCardContainer = document.querySelector(".similarMovies");
-  let similarMoviesHTML = movies
+
+  const similarMoviesHTML = movies
     .map((movie) => {
+      const index = favs.findIndex((obj) => obj.imdbID === movie.imdbID);
+      const favCheck = index < 0 ? "" : "active";
+
       return `
-      <div class="similarMovieCard" style="background-image:url(${movie.Poster})">     
-         <div class=favStar></div>
-        <div class="similarMovieText">${movie.Title}</div>
+      <div class="similarMovieCard" style="background-image:url(${movie.Poster})">
+          <div class="favStar ${favCheck}" data-title="${movie.Title}" data-poster="${movie.Poster}" data-imdbId="${movie.imdbID}" style="cursor: pointer;"></div>
+          <div class="similarMovieText">${movie.Title}</div>
       </div>
     `;
     })
     .join("");
+
   similarMovieCardContainer.innerHTML = similarMoviesHTML;
+
+  document.querySelectorAll(".favStar").forEach((star) => {
+    star.addEventListener("click", toggleFavorite);
+  });
 }
 
-// Example usage
-fetchSimilarMovies("Inception");
+function toggleFavorite(event) {
+  const title = event.currentTarget.getAttribute("data-title");
+  const imdbID = event.currentTarget.getAttribute("data-imdbId");
+  const favStar = event.currentTarget;
 
-// Helper function to perform the API request
+  const index = favs.findIndex((movie) => movie.imdbID === imdbID);
+
+  if (index >= 0) {
+    favs.splice(index, 1); // Удаляем фильм из избранного
+    favStar.classList.remove("active");
+  } else {
+    const poster = favStar.getAttribute("data-poster");
+    const fav = { title, poster, imdbID };
+    favs.push(fav); // Добавляем фильм в избранное
+    favStar.classList.add("active");
+  }
+
+  localStorage.setItem("favStar", JSON.stringify(favs)); // Сохраняем изменения в localStorage
+  console.log("Избранные фильмы:", favs); // Для отладки
+}
+
 async function sendRequest(url, method, params) {
   const queryString = new URLSearchParams(params).toString();
   const response = await fetch(`${url}?${queryString}`, { method });
-  if (!response.ok) throw new Error("Network response was not ok");
+  if (!response.ok) throw new Error("Сетевая ошибка");
   return response.json();
 }
 
-// async function fetchSimilarMovies(title) {
-//   try {
-//     // Fetch similar movies from the API
-//     let similarMoviesResponse = await sendRequest("https://www.omdbapi.com/", "GET", {
-//       apikey: "74920bef",
-//       s: title,
-//     });
-
-//     // Select the title and container elements
-//     let similarMovieTitle = document.querySelector(".similarMovieTitle h2");
-//     let similarMovieContainer = document.querySelector(".similarMovies");
-
-//     // Check if the response indicates an error
-//     if (similarMoviesResponse.Response === "False") {
-//       similarMovieTitle.innerHTML = 'No similar movies found.';
-//       similarMovieTitle.style.display = "block";
-//       similarMovieContainer.style.display = "none"; // Hide movie container
-//       return;
-//     }
-
-//     // Display the total number of results
-//     similarMovieTitle.innerHTML = `Похожие фильмы: ${similarMoviesResponse.totalResults}`;
-//     similarMovieTitle.style.display = "block";
-//     similarMovieContainer.style.display = "block"; // Show movie container
-
-//     // Check if there are movies to display
-//     if (similarMoviesResponse.Search && similarMoviesResponse.Search.length > 0) {
-//       displaySimilarMovies(similarMoviesResponse.Search);
-//     } else {
-//       similarMovieContainer.innerHTML = 'No similar movies found.';
-//     }
-//   } catch (error) {
-//     console.error('Error fetching movies:', error);
-//     document.querySelector(".similarMovieTitle h2").innerHTML = 'Error fetching movies.';
-//   }
-// }
-
-// function displaySimilarMovies(movies) {
-//   let similarMovieCardContainer = document.querySelector(".similarMovies");
-//   let similarMoviesHTML = movies.map((movie) => {
-//     return `
-//       <div class="favStar"></div>
-//       <div class="similarMovieCard" style="background-image:url(${movie.Poster})">
-//         <div class="similarMovieText">${movie.Title}</div>
-//       </div>
-//     `;
-//   }).join('');
-//   similarMovieCardContainer.innerHTML = similarMoviesHTML;
-// }
-
-// // Example usage
-// fetchSimilarMovies("Inception");
-
-// // Helper function to perform the API request
-// async function sendRequest(url, method, params) {
-//   const queryString = new URLSearchParams(params).toString();
-//   const response = await fetch(`${url}?${queryString}`, { method });
-//   if (!response.ok) throw new Error('Network response was not ok');
-//   return response.json();
-// }
-
-// async function fetchSimilarMovies(title) {
-//   let similarMoviesResponse = await sendRequest("https://www.omdbapi.com/", "GET", {
-//     apikey: "74920bef",
-//     s: title,
-//   });
-
-//   let similarMovieTitle = document.querySelector(".similarMovieTitle h2");
-//   if (similarMovies.Response== "False"){
-//   }
-//   else {
-//     document.querySelector(".similarMovieTitle h2").innerHTML=`Похожие фильмы:${similarMovies.totalResults}`
-//     fetchSimilarMovies(similarMovies.Search)
-//     console.log(similarMovies);
-//   // similarMovieTitle.innerHTML = `Похожие фильмы: ${similarMoviesResponse.totalResults}`;
-//   similarMovieTitle.style.display = "block";
-//   }
-//   if (similarMoviesResponse.Search && similarMoviesResponse.Search.length > 0) {
-//     displaySimilarMovies(similarMoviesResponse.Search);
-//   } else {
-//     console.log('No similar movies found.');
-//   }
-// }
-
-// function displaySimilarMovies(movies) {
-//   let similarMovieCardContainer = document.querySelector(".similarMovies");
-//   let similarMoviesHTML = movies.map((movie) => {
-//     return `
-//       <div class="similarMovieCard" style="background-image:url(${movie.Poster})">
-//         <div class="similarMovieText">${movie.Title}</div>
-//       </div>
-//     `;
-//   }).join('');
-//   similarMovieCardContainer.innerHTML = similarMoviesHTML;
-// }
-
-// // Example usage
-// fetchSimilarMovies("Inception");
-
-// async function showSimilarMoviesContainer(title) {
-//   let similarMovies = await sendRequest("https://www.omdbapi.com/", "GET", {
-//     apikey: "74920bef",
-//     s: title,
-//   });
-//   let similarMovieTitle = document.querySelector(".similarMovieTitle h2");
-//   similarMovieTitle.innerHTML = `Похожие фильмы: ${similarMovies.totalResults}`;
-//   similarMovieTitle.style.display = "block";
-//   console.log(similarMovies);
-//   showSimilarMoviesContainer(similarMovies.Search)
-// }
-
-// function showSimilarMoviesContainer(movies) {
-//   let similarMoviesContainer = document.querySelector(".similarMovies");
-//   movies.forEach((movie) => {
-//     similarMovies.innerHTML += `<div class "similarMovieCard" style="bacground-image:url(${movie.Poster})">
-//     <div class"similarMovieText">${movie.Title}</div>
-//     </div>`
-//   });
-//   similarMoviesContainer.style.display="grid"
-// }
-
-async function sendRequest(url, method, data) {
-  if (method == "POST") {
-    let response = await fetch(url, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-
-    response = JSON.parse(response);
-    return response;
-  } else if (method == "GET") {
-    url = url + "?" + new URLSearchParams(data);
-    let response = await fetch(url, {
-      method: "GET",
-    });
-
-    response = await response.json();
-    return response;
-  }
-}
+document.addEventListener("DOMContentLoaded", () => {
+  displayFavoriteMovies();
+});
